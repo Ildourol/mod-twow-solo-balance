@@ -1,0 +1,174 @@
+# mod-twow-solo-balance - exactly one real player, including a GM.
+# Copy beside mangosd.conf in modules/mod-twow-solo-balance.conf.
+# Fractions: 0.05 means 5%, not 0.05%. All IDs below must be verified by you.
+# Invalid values/unknown keys reject the entire reload; previous settings remain active.
+# Missing file on startup leaves the module disabled. No DB settings belong here.
+
+[TwowSoloBalance]
+
+# Accepted 0/1; default 1; boolean; master switch for scaling and survival.
+TwowSoloBalance.Enable = 1
+# Accepted casual/normal/challenge/custom; default normal; name; chooses profile defaults.
+SoloBalance.Preset = "normal"
+# Accepted 0.25..3; default 1; factor; health uses sqrt(value), damage uses value.
+SoloBalance.Difficulty = 1.0
+# Accepted 0/1; default 1; boolean; enable non-raid dungeon conversion.
+SoloBalance.Dungeons.Enable = 1
+# Accepted 0/1; default 1; boolean; enable raid conversion using original capacity.
+SoloBalance.Raids.Enable = 1
+# Accepted 0/1; default 0; boolean; enable world conversion (MTCells threads must be <=1).
+SoloBalance.World.Enable = 0
+# Accepted 0/1; default 0; boolean; normal world mobs receive level handling only.
+SoloBalance.World.Normal.Enable = 0
+# Accepted 0/1; default 1; boolean; include world elites when world scope is enabled.
+SoloBalance.World.Elite.Enable = 1
+# Accepted 0/1; default 1; boolean; include world rares when world scope is enabled.
+SoloBalance.World.Rare.Enable = 1
+# Accepted 0/1; default 1; boolean; include world rare elites when world scope is enabled.
+SoloBalance.World.RareElite.Enable = 1
+# Accepted 0/1; default 1; boolean; include world bosses when world scope is enabled.
+SoloBalance.World.WorldBoss.Enable = 1
+# Accepted integers 1..100; default 3; intended players; static world elite capacity.
+SoloBalance.World.Elite.VirtualGroupSize = 3
+# Accepted integers 1..100; default 2; intended players; static world rare capacity.
+SoloBalance.World.Rare.VirtualGroupSize = 2
+# Accepted integers 1..100; default 5; intended players; static world rare-elite capacity.
+SoloBalance.World.RareElite.VirtualGroupSize = 5
+# Accepted integers 1..100; default 40; intended players; static world boss capacity.
+SoloBalance.World.WorldBoss.VirtualGroupSize = 40
+
+# Accepted integers 100..5000; default 500; milliseconds; loaded-object/aura/sustain interval.
+SoloBalance.Scan.IntervalMs = 500
+# Accepted 20..250; default 120; yards; world discovery radius without loading grids.
+SoloBalance.Scan.WorldRadius = 120
+# Accepted 20..500; default 250; yards; instance discovery radius without loading grids.
+SoloBalance.Scan.InstanceRadius = 250
+# Accepted integers 64..20000; default 4096; creatures/map; bound live snapshot retention.
+SoloBalance.Scan.MaxTracked = 4096
+# Accepted integers 5000..300000; default 30000; milliseconds; restore unseen idle creatures before expiry.
+SoloBalance.Scan.ExpiryMs = 30000
+
+# Accepted native/downscale/follow; default downscale; mode; world level policy.
+SoloBalance.Level.World.Mode = "downscale"
+# Accepted integers 0..60; default 5; levels; follow-mode world lower offset.
+SoloBalance.Level.World.Below = 5
+# Accepted integers 0..10; default 2; levels; world upper offset from anchor level.
+SoloBalance.Level.World.Above = 2
+# Accepted native/downscale/follow; default downscale; mode; instance level policy.
+SoloBalance.Level.Instance.Mode = "downscale"
+# Accepted integers 0..60; default 5; levels; follow-mode instance lower offset.
+SoloBalance.Level.Instance.Below = 5
+# Accepted integers 0..10; default 2; levels; instance upper offset from anchor level.
+SoloBalance.Level.Instance.Above = 2
+# Accepted 0.1..0.9; default 0.5; fraction of intended capacity; sigmoid inflection.
+SoloBalance.Curve.Inflection = 0.5
+# Accepted 0.1..1; default 0.3; fraction of intended capacity; sigmoid width.
+SoloBalance.Curve.Width = 0.3
+# Accepted universal/stats; default universal; mode; final damage hook or weapon/AP mutation plus spell hook.
+SoloBalance.Damage.Mode = "universal"
+
+# Preset-dependent entries below are COMMENTED to preserve preset precedence.
+# Uncomment an entry to replace that preset default. Custom begins from normal defaults.
+# Accepted 0.01..10; default casual/normal/challenge/custom=0.8/1/1.2/1; factor; trash health.
+# SoloBalance.Trash.HealthModifier = 1.0
+# Accepted 0.01..10; default 1; factor; trash mana.
+# SoloBalance.Trash.ManaModifier = 1.0
+# Accepted 0.01..10; default 1; factor; trash armor.
+# SoloBalance.Trash.ArmorModifier = 1.0
+# Accepted 0.01..10; default casual/normal/challenge/custom=0.75/1/1.25/1; factor; trash damage.
+# SoloBalance.Trash.DamageModifier = 1.0
+# Accepted 0.01..10; default 1; factor; trash CC cap, final CC factor is at most 1.
+# SoloBalance.Trash.CCModifier = 1.0
+# Accepted 0.01..10; default casual/normal/challenge/custom=0.8/1/1.2/1; factor; boss health.
+# SoloBalance.Boss.HealthModifier = 1.0
+# Accepted 0.01..10; default 1; factor; boss mana.
+# SoloBalance.Boss.ManaModifier = 1.0
+# Accepted 0.01..10; default 1; factor; boss armor.
+# SoloBalance.Boss.ArmorModifier = 1.0
+# Accepted 0.01..10; default casual/normal/challenge/custom=0.75/1/1.25/1; factor; boss damage.
+# SoloBalance.Boss.DamageModifier = 1.0
+# Accepted 0.01..10; default 1; factor; boss CC cap, final CC factor is at most 1.
+# SoloBalance.Boss.CCModifier = 1.0
+
+# Accepted 0/1; default 1; boolean; enable add profile and explicit count limits.
+SoloBalance.Adds.Enable = 1
+# Accepted 0.01..10; default 0.75; factor; additional add health multiplier on trash profile.
+SoloBalance.Adds.HealthModifier = 0.75
+# Accepted 0.01..10; default 1; factor; additional add mana multiplier on trash profile.
+SoloBalance.Adds.ManaModifier = 1.0
+# Accepted 0.01..10; default 1; factor; additional add armor multiplier on trash profile.
+SoloBalance.Adds.ArmorModifier = 1.0
+# Accepted 0.01..10; default 0.75; factor; additional add damage multiplier on trash profile.
+SoloBalance.Adds.DamageModifier = 0.75
+# Accepted 0.01..10; default 1; factor; additional add CC cap multiplier on trash profile.
+SoloBalance.Adds.CCModifier = 1.0
+# Accepted comma-separated bossEntry:addEntry:maxActive, entries 1..2147483647 and max 1..100; default empty; loaded living summons; exact owner limits.
+SoloBalance.Adds.MaxActiveRules = ""
+
+# Accepted 0.001..1; default 0.025; factor; health floor before level/explicit overrides.
+SoloBalance.Clamp.Min.HealthModifier = 0.025
+# Accepted 0.001..1; default 0.10; factor; mana floor before level/explicit overrides.
+SoloBalance.Clamp.Min.ManaModifier = 0.10
+# Accepted 0.001..1; default 0.25; factor; armor floor before level/explicit overrides.
+SoloBalance.Clamp.Min.ArmorModifier = 0.25
+# Accepted 0.001..1; default 0.10; factor; damage floor before level/explicit overrides.
+SoloBalance.Clamp.Min.DamageModifier = 0.10
+# Accepted 0.001..1; default 0.25; factor; CC cap multiplier floor.
+SoloBalance.Clamp.Min.CCModifier = 0.25
+# Accepted 0.01..10 and >= min; default 2; factor; health ceiling before level/explicit overrides.
+SoloBalance.Clamp.Max.HealthModifier = 2.0
+# Accepted 0.01..10 and >= min; default 2; factor; mana ceiling before level/explicit overrides.
+SoloBalance.Clamp.Max.ManaModifier = 2.0
+# Accepted 0.01..10 and >= min; default 2; factor; armor ceiling before level/explicit overrides.
+SoloBalance.Clamp.Max.ArmorModifier = 2.0
+# Accepted 0.01..10 and >= min; default 2; factor; damage ceiling before level/explicit overrides.
+SoloBalance.Clamp.Max.DamageModifier = 2.0
+# Accepted 0.01..10 and >= min; default 1; factor; CC ceiling (final hard maximum remains 1).
+SoloBalance.Clamp.Max.CCModifier = 1.0
+
+# Accepted 0/1; default 1; boolean; heal the anchor on qualifying damage.
+SoloBalance.Sustain.HealthOnDamage.Enable = 1
+# Accepted 0..1; default 0.05; fraction of effective hit; requested leech heal before rate cap.
+SoloBalance.Sustain.HealthOnDamage.Pct = 0.05
+# Accepted 0..0.5; default 0.05; fraction of max HP/second; conservative sliding leech cap.
+SoloBalance.Sustain.HealthOnDamage.MaxHpPerSecond = 0.05
+# Accepted 0/1; default 1; boolean; credit directly player-owned pet/guardian damage to owner.
+SoloBalance.Sustain.HealthOnDamage.IncludePetDamage = 1
+# Accepted 0..1; default 0.05; fraction of max mana/5 seconds; qualifying combat mana sustain.
+SoloBalance.Sustain.ManaPer5Seconds = 0.05
+# Accepted 0..1; default 0; fraction of max HP/5 seconds; optional qualifying combat regeneration.
+SoloBalance.Sustain.HealthPer5Seconds = 0.0
+
+# Accepted 0/1; default 1; boolean; enable hostile aura caps, removals and stack rules.
+SoloBalance.CC.Enable = 1
+# Accepted integers 100..60000; default 3000; milliseconds; hostile CC upper limit before creature CC factor.
+SoloBalance.CC.MaxDurationMs = 3000
+# Accepted integers 100..60000; default 1500; milliseconds; additional charm/possession cap.
+SoloBalance.CC.CharmMaxDurationMs = 1500
+# Accepted comma-separated spellId:durationMs, IDs 1..2147483647 and duration 100..600000; default empty; milliseconds; only shorten qualifying hostile auras.
+SoloBalance.CC.DurationOverrides = ""
+# Accepted comma-separated mechanicId:durationMs, IDs 1..31 and duration 100..60000; default empty; milliseconds; additional per-mechanic upper bounds.
+SoloBalance.CC.MechanicCaps = ""
+# Accepted comma-separated spell IDs 1..2147483647; default empty; IDs; remove only qualifying hostile caster-specific holders on next scan.
+SoloBalance.CC.RemoveAuraIds = ""
+# Accepted 0.01..1; default 0.80; fraction of max HP/hit; qualifying incoming-hit cap (1 means at most full max HP).
+SoloBalance.Survival.MaxSingleHitPct = 0.80
+# Accepted 0/1; default 0; boolean; leave anchor at 1 HP on a qualifying lethal hit when ready.
+SoloBalance.Survival.EmergencyProtection.Enable = 0
+# Accepted integers 1..86400; default 300; seconds; emergency cooldown, survives map changes/relog until restart.
+SoloBalance.Survival.EmergencyProtection.CooldownSeconds = 300
+
+# Accepted comma-separated spellId:stacks, IDs 1..2147483647 and stacks 1..255; default empty; stacks; reduce qualifying hostile holders on scan.
+SoloBalance.Mechanics.MaxAuraStacks = ""
+# Accepted comma-separated creature entries 1..2147483647; default empty; IDs; explicit boss classification.
+SoloBalance.Mechanics.BossEntries = ""
+# Accepted comma-separated mapId:health:mana:armor:damage:cc (map 0..2147483647, factors 0.01..10, CC 0.01..1); default empty; factors; multiply map profile.
+SoloBalance.Mechanics.MapOverrides = ""
+# Accepted comma-separated entry:health:mana:armor:damage:cc (entry 1..2147483647, factors 0.01..10, CC 0.01..1); default empty; factors; multiply creature profile after map override.
+SoloBalance.Mechanics.CreatureOverrides = ""
+# Accepted 0.0..10.0; default 1.0; factor; fixed XP multiplier for solo balance combat (1.0 = native XP).
+SoloBalance.Rewards.XPModifier = 1.0
+# Accepted 0.0..10.0; default 1.0; factor; fixed money multiplier for solo balance combat (1.0 = native money).
+SoloBalance.Rewards.MoneyModifier = 1.0
+# Accepted 0/1; default 0; boolean; log successful config loads, errors always logged.
+SoloBalance.Debug = 0

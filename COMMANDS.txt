@@ -1,0 +1,71 @@
+mod-twow-solo-balance command list
+================================
+
+These are in-game chat commands. No compile/build command was run or is required
+to read this file. The module still needs separate server integration before use.
+
+.solo info
+  Requires account security SEC_DEVELOPER (3) or higher.
+  Shows master switch, preset, difficulty, damage mode, anchor GUID/name/level,
+  map/instance/scope, level policy, world ranks, tracked count, sustain,
+  one-shot/emergency protection, rule counts and world threading restrictions.
+
+.solo creature
+  Requires account security SEC_DEVELOPER (3) or higher.
+  Select a creature first. Shows eligibility, GUID/entry, profile, boss/add flags,
+  native/scaled level, current/max/native HP, all factors, overrides and whether
+  a configuration generation is waiting for combat to end.
+
+.solo reload
+  Requires account security SEC_ADMINISTRATOR (4) or higher (or server console).
+  Reloads only modules/mod-twow-solo-balance.conf beside mangosd.conf.
+  Invalid values reject the reload and keep the previous configuration active.
+  Valid creature stat changes wait for combat to end. Disabling/restoring takes
+  effect by the next discovery scan. Survival changes take effect immediately.
+  This does not write mangosd.conf, change raid access, or reload the database.
+
+.solo rescale
+  Requires account security SEC_DEVELOPER (3) or higher.
+  If a creature is selected, forces immediate rescale on that target.
+  If no creature is selected, immediately rescales all tracked creatures on
+  the current map.
+
+.solo
+  Prints the supported command names.
+
+Notes
+-----
+All replies are private. Console use supports `.solo reload`. Active GM mode alone is
+not account permission. The core's .help solo table is not extended.
+
+External server settings (edit yourself; these are NOT chat commands)
+------------------------------------------------------------------
+Instance.IgnoreRaid = 1
+  Your separate raid-entry setting. The module never changes it or creates groups.
+
+MapUpdate.Continents.MTCells.Threads = 0
+  Existing core default; 0 or 1 is required only for optional world conversion.
+  Restart after changing it. Instances do not have this restriction.
+
+Module startup defaults
+-----------------------
+TwowSoloBalance.Enable = 1
+SoloBalance.Dungeons.Enable = 1
+SoloBalance.Raids.Enable = 1
+SoloBalance.World.Enable = 0
+SoloBalance.Preset = "normal"
+SoloBalance.Damage.Mode = "universal"
+
+Place these in the supplied module-owned config under [TwowSoloBalance].
+For safe rollback set TwowSoloBalance.Enable = 0 and run .solo reload.
+
+Quick manual sequence after separate integration
+------------------------------------------------
+1. Enter a dungeon with exactly one character and run .solo info.
+2. Select an enemy and run .solo creature after one scan interval.
+3. Run .solo reload repeatedly; verify factors/native HP never compound.
+4. Repeat after combat, death/respawn, a level change and a map change.
+5. Compare actual health changes for melee, spells and DoTs; test pet leech.
+6. Check private README limitations before enabling encounter-specific rules.
+
+No build, link, runtime startup or live raid test was performed for this delivery.
