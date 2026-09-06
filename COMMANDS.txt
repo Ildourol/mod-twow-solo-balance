@@ -5,33 +5,34 @@ These are in-game chat commands. No compile/build command was run or is required
 to read this file. The module still needs separate server integration before use.
 
 .solo info
-  Requires account security SEC_DEVELOPER (3) or higher.
+  Available to all players (SEC_PLAYER / 0 or higher).
   Shows master switch, preset, difficulty, damage mode, anchor GUID/name/level,
   map/instance/scope, level policy, world ranks, tracked count, sustain,
-  one-shot/emergency protection, rule counts and world threading restrictions.
+  one-shot/emergency protection, rule counts and current instance multipliers.
+
+.solo stats
+  Available to all players (SEC_PLAYER / 0 or higher).
+  Alias for .solo info.
 
 .solo creature
-  Requires account security SEC_DEVELOPER (3) or higher.
-  Select a creature first. Shows eligibility, GUID/entry, profile, boss/add flags,
-  native/scaled level, current/max/native HP, all factors, overrides and whether
-  a configuration generation is waiting for combat to end.
+  Available to all players (SEC_PLAYER / 0 or higher).
+  Select a creature first. Shows entry, GUID, profile (Boss/Add/Trash),
+  native/scaled level, current/max/native HP, mana, multipliers, and damage mode.
 
 .solo reload
-  Requires account security SEC_ADMINISTRATOR (4) or higher (or server console).
-  Reloads only modules/mod-twow-solo-balance.conf beside mangosd.conf.
+  Requires account security SEC_DEVELOPER (3) or higher (or server console).
+  Reloads mod-twow-solo-balance.conf.
   Invalid values reject the reload and keep the previous configuration active.
-  Valid creature stat changes wait for combat to end. Disabling/restoring takes
-  effect by the next discovery scan. Survival changes take effect immediately.
-  This does not write mangosd.conf, change raid access, or reload the database.
+  Survival changes take effect immediately.
 
 .solo rescale
   Requires account security SEC_DEVELOPER (3) or higher.
   If a creature is selected, forces immediate rescale on that target.
-  If no creature is selected, immediately rescales all tracked creatures on
-  the current map.
+  If no creature is selected, immediately rescales all creatures in the current
+  dungeon/raid instance or all tracked creatures on the current map.
 
-.solo
-  Prints the supported command names.
+.solo / .solo help
+  Prints the supported command list and usage.
 
 Notes
 -----

@@ -17,8 +17,12 @@ Snapshot* Ensure(Creature* creature, Player* anchor, MapState& state, Settings c
 Snapshot* Find(Creature* creature, MapState& state);
 void Restore(Creature* creature, Snapshot const& snapshot);
 void Update(Map* map, uint32 diff);
+void OnPlayerEnter(Map* map, Player* player);
 void Leave(Map* map, Player* player);
 void Death(Unit* unit);
 bool Fighting(Player* player, MapState& state);
 Player* CreditedPlayer(Unit* unit, bool includePet);
+void ScaleInstance(Map* map, Player* player);
+void EchoInstanceStats(Player* player, Map* map);
+void EchoLoginStats(Player* player);
 }

@@ -64,8 +64,8 @@ SoloBalance.Level.Instance.Above = 2
 SoloBalance.Curve.Inflection = 0.5
 # Accepted 0.1..1; default 0.3; fraction of intended capacity; sigmoid width.
 SoloBalance.Curve.Width = 0.3
-# Accepted universal/stats; default universal; mode; final damage hook or weapon/AP mutation plus spell hook.
-SoloBalance.Damage.Mode = "universal"
+# Accepted universal/stats; default stats; mode; final damage hook or weapon/AP mutation plus spell hook.
+SoloBalance.Damage.Mode = "stats"
 
 # Preset-dependent entries below are COMMENTED to preserve preset precedence.
 # Uncomment an entry to replace that preset default. Custom begins from normal defaults.

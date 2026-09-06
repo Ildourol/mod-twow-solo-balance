@@ -23,6 +23,7 @@ class SoloMap final : public AllMapScript
 public:
     SoloMap() : AllMapScript("twow_solo_map") {}
     void OnCreateMap(Map* map) override { SoloBalance::State(map); }
+    void OnPlayerEnterAll(Map* map, Player* player) override { SoloBalance::OnPlayerEnter(map, player); }
     void OnMapUpdate(Map* map, uint32 diff) override { SoloBalance::Update(map, diff); }
     void OnPlayerLeaveAll(Map* map, Player* player) override { SoloBalance::Leave(map, player); }
     void OnDestroyMap(Map* map) override { SoloBalance::Destroy(map); }
@@ -73,7 +74,11 @@ public:
 class SoloPlayer final : public PlayerScript
 {
 public:
-    SoloPlayer() : PlayerScript("twow_solo_rewards", {PLAYERHOOK_ON_GIVE_EXP, PLAYERHOOK_ON_MONEY_CHANGED}) {}
+    SoloPlayer() : PlayerScript("twow_solo_rewards", {PLAYERHOOK_ON_GIVE_EXP, PLAYERHOOK_ON_MONEY_CHANGED, PLAYERHOOK_ON_LOGIN}) {}
+    void OnLogin(Player* player) override
+    {
+        SoloBalance::EchoLoginStats(player);
+    }
     void OnGiveXP(Player* player, uint32& amount, Unit* victim) override
     {
         Creature* c = victim ? victim->ToCreature() : nullptr;

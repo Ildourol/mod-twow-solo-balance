@@ -13,7 +13,7 @@ namespace SoloBalance
 namespace
 {
 std::shared_ptr<Settings const> current = [] {
-    auto c = std::make_shared<Settings>(); c->enabled = false; return c;
+    auto c = std::make_shared<Settings>(); c->enabled = true; return c;
 }();
 std::mutex reloadMutex;
 uint32 generation = 0;
@@ -113,7 +113,26 @@ std::string ConfigPath()
 {
     auto filename = MaNGOS::Singleton< ::Config, ::Config::Lock>::Instance().GetFilename();
     auto slash = filename.find_last_of("/\\");
-    return (slash == std::string::npos ? "" : filename.substr(0, slash + 1)) + "modules/mod-twow-solo-balance.conf";
+    std::string dir = (slash == std::string::npos ? "" : filename.substr(0, slash + 1));
+    std::vector<std::string> candidates = {
+        dir + "modules/mod-twow-solo-balance.conf",
+        dir + "mod-twow-solo-balance.conf",
+        dir + "modules/mod-twow-solo-balance.conf.dist",
+        "modules/mod-twow-solo-balance.conf",
+        "mod-twow-solo-balance.conf",
+        "etc/modules/mod-twow-solo-balance.conf",
+        "etc/mod-twow-solo-balance.conf"
+    };
+    for (auto const& path : candidates)
+    {
+        FILE* f = fopen(path.c_str(), "r");
+        if (f)
+        {
+            fclose(f);
+            return path;
+        }
+    }
+    return dir + "modules/mod-twow-solo-balance.conf";
 }
 bool Reload(std::string& error)
 {
@@ -121,7 +140,12 @@ bool Reload(std::string& error)
     try
     {
         Reader r;
-        if (!r.file.SetSource(ConfigPath().c_str())) throw std::runtime_error("cannot read " + ConfigPath());
+        std::string path = ConfigPath();
+        bool fileLoaded = r.file.SetSource(path.c_str());
+        if (!fileLoaded)
+        {
+            sLog.outString("[SoloBalance] Configuration file '%s' not found, applying default solo balance settings.", path.c_str());
+        }
         auto c = std::make_shared<Settings>();
         c->preset = r.Text("SoloBalance.Preset", "normal");
         if (c->preset == "casual") { c->trash.health = c->boss.health = 0.8; c->trash.damage = c->boss.damage = 0.75; }
@@ -201,15 +225,17 @@ bool Reload(std::string& error)
         }
         c->xpModifier = r.Num("SoloBalance.Rewards.XPModifier", 1, 0, 10);
         c->moneyModifier = r.Num("SoloBalance.Rewards.MoneyModifier", 1, 0, 10);
-        std::vector<std::string> sections;
-        r.file.GetRootSections(sections);
-        for (auto const& section : sections)
+        if (fileLoaded)
         {
-            if (section != "TwowSoloBalance") throw std::runtime_error("expected [TwowSoloBalance] section");
-            std::vector<std::string> keys; r.file.GetKeys(section.c_str(), keys);
-            for (auto const& key : keys) if (!r.known.count(key)) throw std::runtime_error("unknown option: " + key);
+            std::vector<std::string> sections;
+            r.file.GetRootSections(sections);
+            for (auto const& section : sections)
+            {
+                if (section != "TwowSoloBalance" && section != "SoloBalance") continue;
+                std::vector<std::string> keys; r.file.GetKeys(section.c_str(), keys);
+                for (auto const& key : keys) if (!r.known.count(key)) sLog.outDetail("[SoloBalance] unknown option: %s", key.c_str());
+            }
         }
-        if (sections.empty()) throw std::runtime_error("missing [TwowSoloBalance] section");
         c->generation = ++generation;
         std::atomic_store(&current, std::shared_ptr<Settings const>(c));
         error.clear();

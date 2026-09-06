@@ -12,6 +12,7 @@
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
+#include "Chat.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -133,8 +134,7 @@ bool Eligible(Creature* c, Player* p, Settings const& cfg)
         return false;
     if (c->IsPet() || c->IsTotem() || c->IsTrigger() || c->GetCreatureType() == CREATURE_TYPE_CRITTER ||
         c->GetOwnerGuid().IsPlayer() || c->GetCharmerOrOwnerPlayerOrPlayerItself() ||
-        c->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SPAWNING | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE_2 |
-            UNIT_FLAG_IMMUNE_TO_PLAYER | UNIT_FLAG_PLAYER_CONTROLLED)) return false;
+        c->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED)) return false;
     if (c->IsTemporarySummon())
     {
         auto summon = static_cast<TemporarySummon*>(c);
@@ -147,28 +147,26 @@ bool Eligible(Creature* c, Player* p, Settings const& cfg)
         int rank = RankIndex(c);
         if (rank < 0 || !cfg.worldRanks[size_t(rank)]) return false;
     }
-    // GetReactionTo makes GMs neutral, and charm temporarily replaces the player's faction.
-    // Use the character's race faction with explicit reputation for those two cases.
-    ReputationRank reaction;
     if (p->IsGameMaster() || p->IsCharmed())
     {
         auto faction = c->GetFactionTemplateEntry();
         auto playerFaction = sObjectMgr.GetFactionTemplateEntry(Player::GetFactionForRace(p->GetRace()));
         if (!faction || !playerFaction) return false;
-        reaction = faction->IsHostileTo(*playerFaction) ? REP_HOSTILE :
-            (faction->IsFriendlyTo(*playerFaction) || playerFaction->IsFriendlyTo(*faction) ? REP_FRIENDLY : REP_NEUTRAL);
-        if (auto forced = p->GetReputationMgr().GetForcedRankIfAny(faction)) reaction = *forced;
-        else if (auto entry = sObjectMgr.GetFactionEntry(faction->faction))
+        if (faction->IsFriendlyTo(*playerFaction) || playerFaction->IsFriendlyTo(*faction))
+            return false;
+        if (auto forced = p->GetReputationMgr().GetForcedRankIfAny(faction))
+            if (*forced >= REP_FRIENDLY) return false;
+        if (auto entry = sObjectMgr.GetFactionEntry(faction->faction))
             if (entry->CanHaveReputation())
-            {
-                reaction = p->GetReputationMgr().GetRank(entry);
-                if (auto reputation = p->GetReputationMgr().GetState(entry))
-                    if (reputation->Flags & FACTION_FLAG_AT_WAR) reaction = std::min(reaction, REP_NEUTRAL);
-            }
+                if (p->GetReputationMgr().GetRank(entry) >= REP_FRIENDLY)
+                    return false;
     }
-    else reaction = c->GetReactionTo(p);
-    // Neutral attackable creatures qualify, but friendly service NPCs never do.
-    return reaction < REP_FRIENDLY;
+    else
+    {
+        if (c->IsFriendlyTo(p))
+            return false;
+    }
+    return true;
 }
 Snapshot* Find(Creature* c, MapState& state)
 {
@@ -330,14 +328,127 @@ void Update(Map* map, uint32 diff)
         }
         ++it;
     }
-    double radius = map->IsDungeon() ? cfg->instanceRadius : cfg->radius;
-    auto check = [&](Creature* c) { return c->IsWithinDistInMap(p, float(radius)); };
-    std::list<Creature*> loaded;
-    MaNGOS::CreatureListSearcher<decltype(check)> search(loaded, check);
-    Cell::VisitAllObjects(p, search, float(radius), true); // true = do not load grids
-    for (Creature* c : loaded) Ensure(c, p, *state, *cfg);
+    if (map->IsDungeon())
+    {
+        DungeonMap* dungeonMap = dynamic_cast<DungeonMap*>(map);
+        if (dungeonMap)
+        {
+            auto& lock = dungeonMap->GetObjectLock();
+            std::shared_lock<std::shared_mutex> guard(lock);
+            auto& container = const_cast<TypeUnorderedMapContainer<AllMapStoredObjectTypes, ObjectGuid>&>(dungeonMap->GetObjectStore());
+            auto pairItr = container.range<Creature>();
+            while (pairItr.first != pairItr.second)
+            {
+                Creature* c = pairItr.first->second;
+                if (c && c->IsAlive() && !c->IsInCombat())
+                    Ensure(c, p, *state, *cfg);
+                ++pairItr.first;
+            }
+        }
+    }
+    else
+    {
+        double radius = cfg->radius;
+        auto check = [&](Creature* c) { return c->IsWithinDistInMap(p, float(radius)); };
+        std::list<Creature*> loaded;
+        MaNGOS::CreatureListSearcher<decltype(check)> search(loaded, check);
+        Cell::VisitAllObjects(p, search, float(radius), true); // true = do not load grids
+        for (Creature* c : loaded) Ensure(c, p, *state, *cfg);
+    }
     ProcessAuras(p, *state, *cfg);
     LimitAdds(p, *state, *cfg);
     Sustain(p, *state, *cfg, elapsed);
+}
+
+void ScaleInstance(Map* map, Player* player)
+{
+    if (!map || !map->IsDungeon() || !player)
+        return;
+
+    auto cfg = Config();
+    if (Content(map, *cfg) == Scope::Disabled)
+        return;
+
+    auto state = State(map);
+    BindAnchor(player, *state);
+
+    DungeonMap* dungeonMap = dynamic_cast<DungeonMap*>(map);
+    if (!dungeonMap)
+        return;
+
+    auto& lock = dungeonMap->GetObjectLock();
+    std::shared_lock<std::shared_mutex> guard(lock);
+    auto& container = const_cast<TypeUnorderedMapContainer<AllMapStoredObjectTypes, ObjectGuid>&>(dungeonMap->GetObjectStore());
+
+    auto pairItr = container.range<Creature>();
+    while (pairItr.first != pairItr.second)
+    {
+        Creature* creature = pairItr.first->second;
+        if (creature && creature->IsAlive() && !creature->IsInCombat())
+        {
+            Ensure(creature, player, *state, *cfg);
+        }
+        ++pairItr.first;
+    }
+}
+
+void EchoInstanceStats(Player* player, Map* map)
+{
+    if (!player || !map || !map->IsDungeon())
+        return;
+
+    auto cfg = Config();
+    if (!cfg->enabled)
+        return;
+
+    uint32 maxPlayers = dynamic_cast<DungeonMap*>(map) ? dynamic_cast<DungeonMap*>(map)->GetMaxPlayers() : 5;
+    bool isRaid = map->IsRaid();
+    char const* mapName = map->GetMapName() ? map->GetMapName() : "Instance";
+
+    Factors trash = Calculate(maxPlayers, Profile::Trash, 60, 60, map->GetId(), 0, *cfg);
+    Factors boss = Calculate(maxPlayers, Profile::Boss, 60, 60, map->GetId(), 0, *cfg);
+
+    ChatHandler ch(player);
+    ch.PSendSysMessage("|cff00ff00[SoloBalance]|r Entering %s: |cffffd100%s|r (Original: %u-player %s)",
+        isRaid ? "Raid" : "Dungeon", mapName, maxPlayers, isRaid ? "Raid" : "Dungeon");
+    ch.PSendSysMessage("|cff00ff00[SoloBalance]|r Scaled for 1 player! Difficulty: |cffffd100%s (%.2f)|r | Mode: |cffffd100%s|r",
+        cfg->preset.c_str(), cfg->difficulty, cfg->statDamage ? "Stats" : "Universal");
+    ch.PSendSysMessage("|cff00ff00[SoloBalance]|r Trash: HP |cffffd100%.1f%%|r, DMG |cffffd100%.1f%%|r | Boss: HP |cffffd100%.1f%%|r, DMG |cffffd100%.1f%%|r",
+        trash.health * 100.0, trash.damage * 100.0, boss.health * 100.0, boss.damage * 100.0);
+}
+
+void EchoLoginStats(Player* player)
+{
+    if (!player)
+        return;
+
+    auto cfg = Config();
+    ChatHandler ch(player);
+    ch.PSendSysMessage("|cff00ff00[SoloBalance]|r Solo Balance 1.18.1 is |cffffd100%s|r! (Preset: |cffffd100%s|r, Difficulty: |cffffd100%.2f|r)",
+        cfg->enabled ? "ACTIVE" : "DISABLED", cfg->preset.c_str(), cfg->difficulty);
+    ch.PSendSysMessage("|cff00ff00[SoloBalance]|r Scopes: Dungeons [|cffffd100%s|r] | Raids [|cffffd100%s|r] | World [|cffffd100%s|r] | Damage: [|cffffd100%s|r]",
+        cfg->dungeons ? "ON" : "OFF", cfg->raids ? "ON" : "OFF", cfg->world ? "ON" : "OFF", cfg->statDamage ? "Stats" : "Universal");
+    ch.PSendSysMessage("|cff00ff00[SoloBalance]|r Sustain: Leech |cffffd100%.1f%%|r (Cap: %.1f%%/s) | Mana: |cffffd100%.1f%%/5s|r | CC Cap: |cffffd100%u ms|r",
+        cfg->leechPct * 100.0, cfg->leechCap * 100.0, cfg->manaPer5 * 100.0, cfg->ccMax);
+    ch.PSendSysMessage("|cff00ff00[SoloBalance]|r Type |cffffffff.solo info|r or |cffffffff.solo help|r for commands.");
+}
+
+void OnPlayerEnter(Map* map, Player* player)
+{
+    if (!map || !player || !player->IsInWorld())
+        return;
+
+    auto cfg = Config();
+    if (!cfg->enabled)
+        return;
+
+    if (map->IsDungeon())
+    {
+        if (Content(map, *cfg) != Scope::Disabled)
+        {
+            ScaleInstance(map, player);
+            EchoInstanceStats(player, map);
+        }
+    }
 }
 }
